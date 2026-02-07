@@ -1,48 +1,39 @@
 #version 330 compatibility
 
-uniform sampler2D colortex0;
-uniform float frameTime;
-
 in vec2 gfragtexcoord;
+uniform sampler2D colortex0;
+
+layout(location = 0) out vec4 gfragcolor0;
 
 #include "program/preset.h"
-#include "program/commons.glsl"
 
-/* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 gfragcolor0;
+vec2 lowres(vec2 c, vec2 f)
+{
+    return floor(c * f) / f;
+}
 
 void main()
 {
-    vec4 gfragfinal = texture2D(colortex0, gfragtexcoord);
-    float gLum = luma(gfragfinal.rgb);
+    vec2 texel = 1.0 / vec2(1280.0, 720.0);
+    vec2 texel2 = vec2(640.0, 360.0);
 
-    vec3 gout0 = vec3(0.0);
-    float gtotal = 0.0;
+    vec4 color = vec4(0.0);
 
-    for (int e = -3; e <= 3; e++)
-    {
-        for (int f = -3; f <= 3; f++)
-        {
-            vec2 gGlowImgs = vec2(float(e), float(f) * 1.5) * bloomRadius;
-            float gWeight = exp(-mag2(gGlowImgs) / 6.0);
+    vec2 uv = gfragtexcoord;
 
-            vec3 gSmpColor = texture2D(colortex0, gfragtexcoord + gGlowImgs).rgb;
-            float gSmpLuma = luma(gSmpColor);
-            float gSmpMsk = smoothcube(smoothstep(luminanceBias, 1.0, gSmpLuma));
+    color += texture(colortex0, uv + texel * vec2(-1, -1));
+    color += texture(colortex0, uv + texel * vec2( 0, -1));
+    color += texture(colortex0, uv + texel * vec2( 1, -1));
+    color += texture(colortex0, uv + texel * vec2(-1,  0));
+    color += texture(colortex0, lowres(uv, texel2));
+    color += texture(colortex0, uv + texel * vec2( 1,  0));
+    color += texture(colortex0, uv + texel * vec2(-1,  1));
+    color += texture(colortex0, uv + texel * vec2( 0,  1));
+    color += texture(colortex0, uv + texel * vec2( 1,  1));
 
-            gout0 += maxx3(gSmpColor.r, gSmpColor.g, gSmpColor.b) * gSmpMsk * gWeight;
-            gtotal += max0(gWeight);
-        }
-    }
-    gout0 /= gtotal;
-    
-    float gCtrLum = gLum;
-    float gCtrMsk = clmpPower(smoothstep(luminanceDetect, 1.0, gCtrLum));
-    float gbloomp = 1.0 + 0.3 * sin(frameTime * 60.0);
-
-    #ifdef BLOOM_LIGHT
-    gfragfinal.rgb += gout0 * bloomIntensity * smoothcube(inverse2(gCtrMsk, gCtrLum));
+    #ifdef LOW_RES
+        gfragcolor0 = color / 9.0;
+    #else 
+        gfragcolor0 = texture2D(colortex0, gfragtexcoord);
     #endif
-
-    gfragcolor0 = gfragfinal;
 }

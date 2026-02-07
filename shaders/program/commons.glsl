@@ -51,4 +51,9 @@ float clmpPower(float x)
     return powx2(clamp(abs(x), 1e-6, 1e6));
 }
 
+float bandify(float f, float s)
+{
+    return floor(f * s) / s;
+}
+
 #endif

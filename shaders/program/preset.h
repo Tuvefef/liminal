@@ -4,11 +4,10 @@
 
 #ifdef GLSL_CTRL 
 #define BLOOM_LIGHT
+#define LOW_RES
+#define DITHERING
 
 #define rgbaChannel 3 //[0 1 2 3]
-
-#define WASH
-#define washedImg 32.0 //[16.0 32.0 64.0]
 
 #define bloomIntensity 1.0 //[0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0]
 #define luminanceBias 0.6 //[0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
@@ -25,7 +24,7 @@
 #define CHROMA_ABERRATION
 #define chromaAbberationIntensity 1.5 //[0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3.0 3.1 3.2 3.3 3.4 3.5]
 
-#define CHROMA
+#define ditheringLevel 4.0 //[2.0 4.0 6.0 8.0]
 
 /* macros in functions */
 

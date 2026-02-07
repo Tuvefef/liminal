@@ -2,7 +2,13 @@
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex10;
+uniform sampler2D depthtex0;
 uniform float frameTime;
+uniform sampler2D gcolor;
+uniform vec3 fogColor;
+
+uniform float far;
+uniform float near;
 
 in vec2 gfragtexcoord;
 
@@ -45,9 +51,23 @@ float linearBlueNoiseRGB(sampler2D samplerNoise, vec2 gdatatexcoord0, int gchann
     return selectChannelRGBA(grenderNoise, gchannel);
 }
 
+float linearDepth(float d)
+{
+    float z = d * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
+
+vec2 lowres(vec2 c, vec2 f)
+{
+    return floor(c * f) / f;
+}
+
+#define LOW
+
 void main()
 {
-    vec4 gfragfinal = texture2D(colortex0, gfragtexcoord);
+    vec4 gfragfinal = texture2D(gcolor, gfragtexcoord);
+    //gfragfinal = texture2D(colortex0, uv);
     //gfragfinal.rgb *= vec3(0.3961, 0.4314, 0.6314);
 
     float glum = luma(gfragfinal.rgb);
@@ -57,7 +77,7 @@ void main()
     float glow = smoothstep(0.35, 1.0, glum);
     
     #ifdef CHROMA_ABERRATION
-    gfragfinal = chromaticAberrationImg(colortex0, gfragtexcoord);
+    gfragfinal = chromaticAberrationImg(gcolor, gfragtexcoord);
     #endif
 
     float n = linearBlueNoiseRGB(colortex10, gfragtexcoord * 4.0 + (frameTime), rgbaChannel);
@@ -67,19 +87,31 @@ void main()
     gfragfinal.rgb += (n - 0.5) * gnoise * inverse(glum);
     #endif
 
-    #ifndef CHROMA
-    gfragfinal.rgb = chroma + (gfragfinal.rgb - chroma) * 1.04;
-    #endif
-
     #ifdef FLICKER
     gfragfinal.rgb *= smoothcube(gflicker);
     #endif
 
-    #ifdef WAHS
-    gfragfinal.rgb = qtzn0(gfragfinal.rgb, washedImg);
-    #endif
     gfragfinal.rgb += smoothcube(powx2(max0(glow))) * 0.08;
     gfragfinal.rgb *= mix(cgreentint, cbluetint, glow);
+
+    float gBandLevel = 32.0;
+
+    vec3 gBandedRGB = floor(gfragfinal.rgb * gBandLevel) / gBandLevel;
+
+    float glumFinal = luma(gfragfinal.rgb);
+    float gShadowMask = smoothstep(0.6, 0.14, glumFinal);
+
+    gfragfinal.rgb = mix(gfragfinal.rgb, gBandedRGB, gShadowMask);
+
+    vec3 gDitherRGB;
+    gDitherRGB.r = linearBlueNoiseRGB(colortex10, gfragtexcoord, 0);
+    gDitherRGB.g = linearBlueNoiseRGB(colortex10, gfragtexcoord, 1);
+    gDitherRGB.b = linearBlueNoiseRGB(colortex10, gfragtexcoord, 2);
+    gDitherRGB -= 0.5;
+
+    #ifdef DITHERING
+        gfragfinal.rgb += gDitherRGB * (ditheringLevel / gBandLevel);
+    #endif
 
     gfragcolor0 = gfragfinal;
 }
